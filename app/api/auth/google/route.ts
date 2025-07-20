@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Create new user
+      console.log("creating new user");
       user = await prisma.user.create({
         data: {
           email,
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Create session
     await createSession(user.id, user.email)
-
+    console.log("Google authentication successfulll");
     return NextResponse.json({
       message: "Google authentication successful",
       user: {
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
         name: user.name,
         avatar: user.avatar,
       },
+      
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

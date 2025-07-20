@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { toast } from "sonner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,20 +43,41 @@ export function Navbar() {
 
   useEffect(() => {
     setMounted(true)
-    // Check authentication status
-    const authStatus = localStorage.getItem("finverse_auth")
-    const userData = localStorage.getItem("finverse_user")
-
-    if (authStatus === "true" && userData) {
-      setUser(JSON.parse(userData))
-    }
+    checkAuth()
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("finverse_auth")
-    localStorage.removeItem("finverse_user")
-    setUser(null)
-    router.push("/")
+  const checkAuth = async () => {
+    try {
+      const response = await fetch('/api/auth/me')
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+      } else {
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('Auth check error:', error)
+      setUser(null)
+    }
+  }
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      })
+      
+      if (response.ok) {
+        setUser(null)
+        toast.success("Logged out successfully")
+        router.push("/auth")
+      } else {
+        toast.error("Logout failed")
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast.error("Logout failed")
+    }
   }
 
   // Don't render until mounted to avoid hydration mismatch

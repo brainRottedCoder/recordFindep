@@ -16,7 +16,7 @@
     "@emotion/is-prop-valid": "latest",
     "@heroicons/react": "latest",
     "@hookform/resolvers": "^3.9.1",
-    "@prisma/client": "latest",
+    "@prisma/client": "^6.12.0",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
@@ -76,8 +76,8 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "postcss": "^8.5",
-    "prisma": "^5.7.0",
+    "prisma": "^6.12.0",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   }
 }

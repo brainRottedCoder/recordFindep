@@ -27,11 +27,10 @@ export async function GET(request: NextRequest) {
       await prisma.verificationToken.delete({
         where: { id: verificationToken.id },
       })
-
       return NextResponse.json({ error: "Verification token has expired" }, { status: 400 })
     }
 
-    // Update user as verified
+    // Verify user's email
     await prisma.user.update({
       where: { id: verificationToken.userId },
       data: { emailVerified: new Date() },
@@ -43,14 +42,22 @@ export async function GET(request: NextRequest) {
     })
 
     // Send welcome email
-    await sendEmail({
-      to: verificationToken.user.email,
-      subject: "Welcome to FinVerse!",
-      html: getWelcomeEmailTemplate(verificationToken.user.name || "there"),
-    })
+    try {
+      await sendEmail({
+        to: verificationToken.user.email,
+        subject: "Welcome to FinVerse!",
+        html: getWelcomeEmailTemplate(verificationToken.user.name || "there"),
+      })
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError)
+      // Don't fail the verification if email fails
+    }
 
-    // Redirect to success page
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/auth?verified=true`)
+    // Redirect to login page with success message
+    const loginUrl = new URL("/auth", request.url)
+    loginUrl.searchParams.set("verified", "true")
+    
+    return NextResponse.redirect(loginUrl)
   } catch (error) {
     console.error("Email verification error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { toast } from "sonner"
 import {
   EyeIcon,
   EyeSlashIcon,
@@ -35,6 +36,13 @@ export default function AuthPage() {
 
   useEffect(() => {
     setMounted(true)
+    
+    // Check for verification success message
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('verified') === 'true') {
+      toast.success("Email verified successfully! You can now log in.")
+      setIsLogin(true)
+    }
   }, [])
 
   if (!mounted) {
@@ -56,39 +64,119 @@ export default function AuthPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      // Store auth state in localStorage (in real app, use proper auth)
-      localStorage.setItem("finverse_auth", "true")
-      localStorage.setItem("finverse_user", JSON.stringify({ name: formData.name || "Alex", email: formData.email }))
-
-      // Check if onboarding is complete
-      const onboardingComplete = localStorage.getItem("finverse_onboarding_complete")
-      if (onboardingComplete === "true") {
-        router.push("/dashboard")
-      } else {
-        router.push("/onboarding")
+    try {
+      // Validate inputs
+      if (!formData.email || !formData.password) {
+        toast.error("Please fill in all required fields")
+        return
       }
-    }, 2000)
+
+      if (formData.email.length < 3) {
+        toast.error("Please enter a valid email address")
+        return
+      }
+
+      if (formData.password.length < 1) {
+        toast.error("Password is required")
+        return
+      }
+
+      // Get CSRF token
+      const csrfResponse = await fetch('/api/auth/csrf')
+      const csrfData = await csrfResponse.json()
+      const csrfToken = csrfData.token
+
+      if (isLogin) {
+        // Login
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          toast.error(data.error || 'Login failed')
+          return
+        }
+
+        toast.success("Welcome back!")
+        
+        // Check if onboarding is complete
+        const onboardingComplete = localStorage.getItem("finverse_onboarding_complete")
+        if (onboardingComplete === "true") {
+          router.push("/dashboard")
+        } else {
+          router.push("/onboarding")
+        }
+      } else {
+        // Register
+        if (!formData.name) {
+          toast.error("Please enter your full name")
+          return
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+          toast.error("Passwords don't match")
+          return
+        }
+
+        if (formData.password.length < 8) {
+          toast.error("Password must be at least 8 characters")
+          return
+        }
+
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          toast.error(data.error || 'Registration failed')
+          return
+        }
+
+        toast.success(data.message || "Registration successful!")
+        
+        // Switch to login mode after successful registration
+        setIsLogin(true)
+        setFormData({
+          name: "",
+          email: formData.email, // Keep email for login
+          password: "",
+          confirmPassword: "",
+        })
+      }
+    } catch (error) {
+      console.error('Authentication error:', error)
+      toast.error("Authentication failed. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleGoogleAuth = () => {
     setIsLoading(true)
-    // Simulate Google OAuth
-    setTimeout(() => {
-      setIsLoading(false)
-      localStorage.setItem("finverse_auth", "true")
-      localStorage.setItem("finverse_user", JSON.stringify({ name: "Alex Chen", email: "alex@example.com" }))
-
-      // Check if onboarding is complete
-      const onboardingComplete = localStorage.getItem("finverse_onboarding_complete")
-      if (onboardingComplete === "true") {
-        router.push("/dashboard")
-      } else {
-        router.push("/onboarding")
-      }
-    }, 1500)
+    // TODO: Implement real Google OAuth
+    toast.error("Google OAuth not implemented yet")
+    setIsLoading(false)
   }
 
   return (

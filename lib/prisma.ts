@@ -4,6 +4,12 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined'
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
+// Only create Prisma client on server-side
+export const prisma = isBrowser 
+  ? ({} as PrismaClient) // Return empty object in browser
+  : (globalForPrisma.prisma ?? new PrismaClient())
+
+if (process.env.NODE_ENV !== "production" && !isBrowser) globalForPrisma.prisma = prisma
